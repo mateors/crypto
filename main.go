@@ -102,6 +102,16 @@ func main() {
 	fmt.Println("*************************")
 	fmt.Println(pubKey2)
 
+	var label []byte
+	sourceText := []byte(`I Love my country`)
+	encryptedText := encrypt(pubKey, sourceText, label)
+	fmt.Println("encryptedText:", encryptedText)
+
+	fmt.Println("#################")
+	fmt.Println("sourceText...:", sourceText)
+	decryptedText := decrypt(pkey2, encryptedText, label)
+	fmt.Println("decryptedText:", decryptedText)
+
 }
 
 func encrypt(publicKey *rsa.PublicKey, sourceText, label []byte) (encryptedText []byte) {
