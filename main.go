@@ -97,7 +97,7 @@ func main() {
 		os.Exit(1)
 	}
 
-	//fmt.Println("Key-1:", pkey)
+	fmt.Println("Key-1:", pkey)
 	fmt.Println("-----------------")
 
 	pkey2, err := ParseRsaPrivateKeyFromPemStr(pkey)

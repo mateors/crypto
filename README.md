@@ -23,3 +23,4 @@ Two of the most widely used encryption algorithms today are AES and RSA. Both ar
 * [RSA Encryption](https://www.sohamkamani.com/golang/rsa-encryption/)
 * [AES Encryption](https://tutorialedge.net/golang/go-encrypt-decrypt-aes-tutorial)
 * [AES vs RSA](https://www.precisely.com/blog/data-security/aes-vs-rsa-encryption-differences)
+* [How to store RSA Keys](https://stackoverflow.com/questions/13555085/save-and-load-crypto-rsa-privatekey-to-and-from-the-disk)
