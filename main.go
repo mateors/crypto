@@ -4,49 +4,104 @@ import (
 	"crypto/md5"
 	"crypto/rand"
 	"crypto/rsa"
+	"crypto/x509"
+	"encoding/pem"
+	"errors"
 	"fmt"
 	"hash"
 	"log"
-	"time"
 )
 
+func GenerateRsaKeyPair() (*rsa.PrivateKey, *rsa.PublicKey) {
+	privkey, _ := rsa.GenerateKey(rand.Reader, 4096) //2048
+	return privkey, &privkey.PublicKey
+}
+
+func ExportRsaPrivateKeyAsPemStr(privkey *rsa.PrivateKey) string {
+
+	privkey_bytes := x509.MarshalPKCS1PrivateKey(privkey)
+	privkey_pem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PRIVATE KEY",
+			Bytes: privkey_bytes,
+		},
+	)
+	return string(privkey_pem)
+}
+
+func ParseRsaPrivateKeyFromPemStr(privPEM string) (*rsa.PrivateKey, error) {
+
+	block, _ := pem.Decode([]byte(privPEM))
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block containing the key")
+	}
+
+	priv, err := x509.ParsePKCS1PrivateKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	return priv, nil
+}
+
+func ExportRsaPublicKeyAsPemStr(pubkey *rsa.PublicKey) (string, error) {
+
+	pubkey_bytes, err := x509.MarshalPKIXPublicKey(pubkey)
+	if err != nil {
+		return "", err
+	}
+	pubkey_pem := pem.EncodeToMemory(
+		&pem.Block{
+			Type:  "RSA PUBLIC KEY",
+			Bytes: pubkey_bytes,
+		},
+	)
+	return string(pubkey_pem), nil
+}
+
+func ParseRsaPublicKeyFromPemStr(pubPEM string) (*rsa.PublicKey, error) {
+
+	block, _ := pem.Decode([]byte(pubPEM))
+	if block == nil {
+		return nil, errors.New("failed to parse PEM block containing the key")
+	}
+
+	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
+	if err != nil {
+		return nil, err
+	}
+
+	switch pub := pub.(type) {
+	case *rsa.PublicKey:
+		return pub, nil
+	default:
+		break // fall through
+	}
+	return nil, errors.New("key type is not RSA")
+}
+
 func main() {
-	startingTime := time.Now()
-	var err error
-	var privateKey *rsa.PrivateKey
-	var publicKey *rsa.PublicKey
-	var sourceText, encryptedText, decryptedText, label []byte
 
-	// SHORT TEXT 92 bytes
-	sourceText = []byte(`{347,7,3,8,7,0,7,5,6,4,1,6,5,6,7,3,7,7,7,6,5,3,5,3,3,5,4,3,2,10,3,7,5,6,65,350914,760415,33}`)
-	fmt.Printf("\nsourceText byte length:\n%d\n", len(sourceText))
+	privKey, pubKey := GenerateRsaKeyPair()
+	fmt.Println("PrivateKey:", privKey)
+	pkey := ExportRsaPrivateKeyAsPemStr(privKey)
 
-	// LONGER TEXT 124 bytes
-	// sourceText = []byte(`{347,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,10,65,350914,760415,33}`)
-	// fmt.Printf("\nsourceText byte length:\n%d\n", len(sourceText))
+	//fmt.Println("Key-1:", pkey)
+	fmt.Println("-----------------")
 
-	if privateKey, err = rsa.GenerateKey(rand.Reader, 1024); err != nil {
-		log.Fatal(err)
-	}
+	pkey2, err := ParseRsaPrivateKeyFromPemStr(pkey)
+	fmt.Println(err, "Key-2:", pkey2)
 
-	// fmt.Printf("\nprivateKey:\n%s\n", privateKey)
+	pubKeystr, _ := ExportRsaPublicKeyAsPemStr(pubKey)
 
-	privateKey.Precompute()
+	pubKey2, err := ParseRsaPublicKeyFromPemStr(pubKeystr)
 
-	if err = privateKey.Validate(); err != nil {
-		log.Fatal(err)
-	}
+	fmt.Println("PublicKey:", pubKeystr, err)
 
-	publicKey = &privateKey.PublicKey
+	fmt.Println(pubKey, err)
+	fmt.Println("*************************")
+	fmt.Println(pubKey2)
 
-	encryptedText = encrypt(publicKey, sourceText, label)
-	decryptedText = decrypt(privateKey, encryptedText, label)
-
-	fmt.Printf("\nsourceText: \n%s\n", string(sourceText))
-	fmt.Printf("\nencryptedText: \n%x\n", encryptedText)
-	fmt.Printf("\ndecryptedText: \n%s\n", decryptedText)
-
-	fmt.Printf("\nDone in %v.\n\n", time.Now().Sub(startingTime))
 }
 
 func encrypt(publicKey *rsa.PublicKey, sourceText, label []byte) (encryptedText []byte) {
