@@ -10,10 +10,12 @@ import (
 	"fmt"
 	"hash"
 	"log"
+	"os"
+	"time"
 )
 
 func GenerateRsaKeyPair() (*rsa.PrivateKey, *rsa.PublicKey) {
-	privkey, _ := rsa.GenerateKey(rand.Reader, 4096) //2048
+	privkey, _ := rsa.GenerateKey(rand.Reader, 2048) //4096,2048,1024 time increases as you increase number of bits
 	return privkey, &privkey.PublicKey
 }
 
@@ -82,9 +84,18 @@ func ParseRsaPublicKeyFromPemStr(pubPEM string) (*rsa.PublicKey, error) {
 
 func main() {
 
+	startingTime := time.Now()
+
 	privKey, pubKey := GenerateRsaKeyPair()
 	fmt.Println("PrivateKey:", privKey)
 	pkey := ExportRsaPrivateKeyAsPemStr(privKey)
+
+	privKey.Precompute()
+	err := privKey.Validate()
+	if err != nil {
+		fmt.Println("Error:", err.Error())
+		os.Exit(1)
+	}
 
 	//fmt.Println("Key-1:", pkey)
 	fmt.Println("-----------------")
@@ -112,12 +123,14 @@ func main() {
 	decryptedText := decrypt(pkey2, encryptedText, label)
 	fmt.Println("decryptedText:", decryptedText)
 
+	fmt.Println("TimeTaken:", time.Since(startingTime).Milliseconds(), " ms")
+
 }
 
 func encrypt(publicKey *rsa.PublicKey, sourceText, label []byte) (encryptedText []byte) {
 	var err error
-	var md5_hash hash.Hash
-	md5_hash = md5.New()
+	var md5_hash hash.Hash = md5.New()
+	//md5_hash = md5.New()
 	if encryptedText, err = rsa.EncryptOAEP(md5_hash, rand.Reader, publicKey, sourceText, label); err != nil {
 		log.Fatal(err)
 	}
@@ -126,8 +139,8 @@ func encrypt(publicKey *rsa.PublicKey, sourceText, label []byte) (encryptedText 
 
 func decrypt(privateKey *rsa.PrivateKey, encryptedText, label []byte) (decryptedText []byte) {
 	var err error
-	var md5_hash hash.Hash
-	md5_hash = md5.New()
+	var md5_hash hash.Hash = md5.New()
+	//md5_hash = md5.New()
 	if decryptedText, err = rsa.DecryptOAEP(md5_hash, rand.Reader, privateKey, encryptedText, label); err != nil {
 		log.Fatal(err)
 	}
